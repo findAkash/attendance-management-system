@@ -10,3 +10,5 @@ services:
       - '7000:7000'
     volumes:
       - ./app:/code/app
+    env_file:
+      - .env

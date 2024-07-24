@@ -27,7 +27,4 @@ def verify_jwt_token(token: str) -> dict:
     except jwt.InvalidTokenError as e:
         print(e)
         return {'success': False, 'data': None}
-
-
-token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2Njk5OTNkZTJlZDMyZDE4NmEyYTc1ZjkiLCJzdXBlcmFkbWluIjpmYWxzZSwiaWF0IjoxNzIxMzc4MTg0fQ.4DvDgRnBMDl9T-lTQzVYbTdxnHQJ9W5UjsiivCu0ZEw"
-print(verify_jwt_token(token))
+    
