@@ -11,6 +11,7 @@ from fastapi.security import OAuth2PasswordBearer
 from pymongo import MongoClient
 from auth import verify_jwt_token
 from urllib.parse import quote, unquote
+from bson import ObjectId
 
 
 app = FastAPI()
@@ -18,8 +19,6 @@ app = FastAPI()
 # MongoDB connection
 client = MongoClient(Config.DATABASE_URL)
 db = client["test"]
-
-
 
 # OAuth2PasswordBearer instance
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -52,8 +51,8 @@ def update_qr_code():
 qr_code_thread = threading.Thread(target=update_qr_code)
 qr_code_thread.start()
 
-@app.get("/professor/generate-qr-attendance")
-def get_qr_code(scheduled_class_id: str):
+@app.get("/professor/generate-qr-attendance/{scheduled_class_id}")
+async def get_qr_code(scheduled_class_id: str):
     global current_qr_code_data
     timestamp = datetime.utcnow().isoformat()
     encoded_timestamp = quote(timestamp)
@@ -71,15 +70,16 @@ def get_qr_code(scheduled_class_id: str):
 
     return StreamingResponse(buf, media_type="image/png")
 
-@app.post("/mark-attendance/{scheduled_class_id}/{time}")
-def mark_attendance(scheduled_class_id: str, time: str, token: str = Depends(oauth2_scheme)):
+@app.post("/mark-attendance/{scheduled_class_id}")
+async def mark_attendance(scheduled_class_id: str, timestamp: str, token: str = Depends(oauth2_scheme)):
     # Decode and parse the datetime string
     try:
-        qr_code_time = datetime.fromisoformat(time)
+        qr_code_time = datetime.fromisoformat(unquote(timestamp))
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid datetime format")
 
     # Check if the QR code is expired
+    print(datetime.utcnow(), qr_code_time + timedelta(seconds=Config.QR_REFRESH_INTERVAL))
     if datetime.utcnow() > qr_code_time + timedelta(seconds=Config.QR_REFRESH_INTERVAL):
         raise HTTPException(status_code=400, detail="Invalid or expired QR code")
 
@@ -89,13 +89,14 @@ def mark_attendance(scheduled_class_id: str, time: str, token: str = Depends(oau
         raise HTTPException(status_code=401, detail=response['message'])
 
     user_id = response['data']['_id']
-    student = db.students.find_one({"user": user_id})
+    student = db.students.find_one({"user": ObjectId(user_id)})
     if student is None:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     # Update attendance in the database
-    result = db.attendance.update_one(
-        {"classSchedule": scheduled_class_id, "attendeeId": student["_id"]},
+    print({"classSchedule": ObjectId(scheduled_class_id), "attendeeId": student["_id"]})
+    result = db.attendances.update_one(
+        {"classSchedule": ObjectId(scheduled_class_id), "attendeeId": student["_id"]},
         {"$set": {"status": "Present"}}
     )
 
@@ -106,9 +107,6 @@ def mark_attendance(scheduled_class_id: str, time: str, token: str = Depends(oau
 
 # Root endpoint
 @app.get("/")
-def read_root():
+async def read_root():
     return {"message": "QR Code Attendance System"}
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=7000)

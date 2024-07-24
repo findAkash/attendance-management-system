@@ -1,0 +1,12 @@
+version: '3.7'
+
+services:
+  attendance_app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: attendance_app
+    ports:
+      - '7000:7000'
+    volumes:
+      - ./app:/code/app
