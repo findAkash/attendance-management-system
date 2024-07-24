@@ -12,7 +12,7 @@ This is a FastAPI-based microservice for managing attendance using QR codes.
 ### Clone the Repository
 
 ```sh
-git clone https://github.com/your-username/attendance-management-system.git
+git clone https://github.com/findAkash/attendance-management-system.git
 cd attendance-management-system
 docker compose up
 ```
