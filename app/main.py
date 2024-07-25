@@ -57,7 +57,7 @@ async def get_qr_code(scheduled_class_id: str):
     timestamp = datetime.utcnow().isoformat()
     encoded_timestamp = quote(timestamp)
     qr_data = {
-        "url": f"http://localhost:8000/mark-attendance/{scheduled_class_id}",
+        "url": f"{Config.ENDPOINT}/mark-attendance/{scheduled_class_id}",
         "timestamp": encoded_timestamp
     }
     current_qr_code_data = qr_data
